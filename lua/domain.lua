@@ -40,6 +40,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
 
   local initial_loop = true
   local normal_cursor_delta
+  local normal_buffer_line_delta
 
   while true do
     local previous_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
@@ -55,17 +56,18 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
     local current_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
     local curr_buf_lines = vim.api.nvim_buf_line_count(temp_bufnr)
 
-    local buf_line_delta = curr_buf_lines - prev_buf_lines
+    local buffer_line_delta = curr_buf_lines - prev_buf_lines
     local cursor_delta = current_cursor_row - previous_cursor_row
 
     if initial_loop then
-      if cursor_delta == 0 then
+      if cursor_delta == 0 and buffer_line_delta == 0 then
         errorMsg =
         "Cursor has not moved during initial loop! This will cause the operation to run on this line infinitely."
         ok = false
         break
       else
         normal_cursor_delta = cursor_delta
+        normal_buffer_line_delta = buffer_line_delta
       end
 
       -- WIP: I'm unsure of how often it would actually be necessary to know this.
@@ -77,16 +79,19 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
     end
 
     -- End of document reached. This behavior may be TOO simple; it might be worth looking into expanding on this.
-    if cursor_delta < normal_cursor_delta then break end
+    if cursor_delta < normal_cursor_delta or
+        buffer_line_delta > normal_buffer_line_delta then
+      break
+    end
 
-    if buf_line_delta > cursor_delta then
+    if buffer_line_delta > cursor_delta then
       errorMsg =
       "Buffer size is increasing faster than the cursor is moving! This will cause the buffer to infinitely expand."
       break
     end
 
     -- Offset the end of the domain based on whether it grew or shrank
-    num_lines = num_lines + buf_line_delta
+    num_lines = num_lines + buffer_line_delta
 
     if current_cursor_row > num_lines then break end
   end
