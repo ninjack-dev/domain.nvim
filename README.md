@@ -57,3 +57,6 @@ Manually counting the number of secrets, or visually selecting/reading the numbe
 :'<,'>Domain @m
 ```
 This use-case was the primary inspiration for this plugin.
+## To-Do List for Release
+- [ ] Add support for "backwards" macros (macros which start at the bottom of the intended domain)
+- [ ] Allow variable macro movements by expanding the beginning and end of the buffer with blank lines to preserve the original domain bounds logic
