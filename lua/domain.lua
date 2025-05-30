@@ -46,7 +46,10 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
     local prev_buf_lines = vim.api.nvim_buf_line_count(temp_bufnr)
 
     vim.api.nvim_buf_call(temp_bufnr, function()
-      vim.cmd.normal { action, bang = bang }
+      -- Suppress --no lines in buffer-- notification. It may be worth looking into exiting if it ever gets to that point
+      -- Here's the original for convenience
+      -- vim.cmd.normal { action, bang = bang, silent = true }
+      vim.cmd("silent! normal" .. (bang and "!" or "") .. " " .. action)
     end)
 
     local current_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
