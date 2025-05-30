@@ -18,7 +18,7 @@ There are some minor considerations/protections to put in place to ensure that t
 
 Some caveats:
 - Due to the nature of the checks, macros which are able to vary the cursor delta between invocations are currently unsupported.
-- If a macro does performs no edits, e.g. it only moves the cursor, then the undo tree will still show a change. This is due to how the change would normally be applied; it copies the line range into a temporary buffer/window to apply the command with `normal`, then copies the edited block back, constituting a "change" in the eyes of the undo tree. If it did not, then at any point where the command fails, the changes would still be applied, which is likely undesirable.
+- If a macro performs no edits, e.g. it only moves the cursor, then the undo tree will still show a change. This is due to how the change would normally be applied; it copies the line range into a temporary buffer/window to apply the command with `normal`, then copies the edited block back, constituting a "change" in the eyes of the undo tree. If it did not, then at any point where the command fails, the changes would still be applied, which is likely undesirable.
 
 ## Example Usecase
 ### Building a String with Every Other Line
@@ -42,7 +42,7 @@ Take the following Docker Compose file, which requires many secrets which have a
 ```
 Grabbing the secret names for the purpose of adding them to the `secrets` list for the service is fairly doable in macro form:
 ```
-:let @m = _yt::let @a .= "- ".@0."\n"^mjj
+:let @m = '_yt::let @a .= "- ".@0."\n"^mjj'
 ```
 or "let the register `m` contain the command 'go to the first non-whitespace character on the line, yank up to the first semi-colon, use `let` to append the characters `- `, the yank register, and a newline to register `a`, and move down two lines". Starting on line 6, it can be applied 5 times (for each line containing a secret name) with `5@m`, after which register `a` will contain 
 ```
