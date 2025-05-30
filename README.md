@@ -42,7 +42,7 @@ Take the following Docker Compose file, which requires many secrets which have a
 ```
 Grabbing the secret names for the purpose of adding them to the `secrets` list for the service is fairly doable in macro form:
 ```
-:let '@m = _yt::let @a .= "- ".@0."\n"^mjj'
+:let @m = '_yt::let @a .= "- ".@0."\n"^mjj'
 ```
 or "let the register `m` contain the command 'go to the first non-whitespace character on the line, yank up to the first semi-colon, use `let` to append the characters `- `, the yank register, and a newline to register `a`, and move down two lines". Starting on line 6, it can be applied 5 times (for each line containing a secret name) with `5@m`, after which register `a` will contain 
 ```
