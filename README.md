@@ -18,7 +18,7 @@ There are some minor considerations/protections to put in place to ensure that t
 
 Some caveats:
 - Due to the nature of the checks, macros which are able to vary the cursor delta between invocations are currently unsupported.
-- If a macro does performs no edits, e.g. it only moves the cursor, then the undo tree will still show a change. This is due to how the change would normally be applied; it copies the line range into a temporary buffer/window to apply the command with `normal`, then copies the edited block back, constituting a "change" in the eyes of the undo tree. If it did not, then at any point where the command fails, the changes would still be applied, which is likely undesirable.
+- If a macro performs no edits, e.g. it only moves the cursor, then the undo tree will still show a change. This is due to how the change would normally be applied; it copies the line range into a temporary buffer/window to apply the command with `normal`, then copies the edited block back, constituting a "change" in the eyes of the undo tree. If it did not, then at any point where the command fails, the changes would still be applied, which is likely undesirable.
 
 ## Example Usecase
 ### Building a String with Every Other Line
