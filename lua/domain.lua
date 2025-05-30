@@ -23,23 +23,24 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
   -- Copy the target lines to scratch buffer in temporary window; this is the only way (as far as I can tell) to apply `normal` actions atomically
   -- In theory, the window should never actually appear. If it does, then it may be worth looking at other options for manipulating the buffer,
   -- or at the very least ensuring atomicity.
-  local orig_bufnr = vim.api.nvim_get_current_buf()
-  local temp_bufnr = vim.api.nvim_create_buf(false, true)
-  local orig_lines = vim.api.nvim_buf_get_lines(orig_bufnr, domain_start_line - 1, domain_end_line, false)
-  local orig_cursor_column = vim.api.nvim_win_get_cursor(0)[2]
-  vim.api.nvim_buf_set_lines(temp_bufnr, 0, -1, false, orig_lines)
+  local original_bufnr = vim.api.nvim_get_current_buf()
+  local original_lines = vim.api.nvim_buf_get_lines(original_bufnr, domain_start_line - 1, domain_end_line, false)
+  local original_cursor_column = vim.api.nvim_win_get_cursor(0)[2]
 
-  -- Attempt action in scratch buffer
+  local temp_bufnr = vim.api.nvim_create_buf(false, true)
   local temp_win = vim.api.nvim_open_win(temp_bufnr, true, {
-    relative = "editor", row = 0, col = 0, width = 1, height = 1, style = "minimal", hide = true
+    relative = "win", row = 0, col = 0, width = 1, height = 1, style = "minimal", hide = true
   })
-  vim.api.nvim_win_set_cursor(temp_win, { 1, orig_cursor_column })
+  vim.api.nvim_buf_set_lines(temp_bufnr, 0, -1, false, original_lines)
+  vim.api.nvim_win_set_cursor(temp_win, { 1, original_cursor_column }) -- Respect user's starting column (e.g. when selecting with <C-v>)
   local num_lines = vim.api.nvim_buf_line_count(temp_bufnr)
-  local initial_loop = true
-  local normal_cursor_delta
 
   local ok = true
   local errorMsg, warnMsg
+
+  local initial_loop = true
+  local normal_cursor_delta
+
   while true do
     local previous_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
     local prev_buf_lines = vim.api.nvim_buf_line_count(temp_bufnr)
@@ -48,11 +49,11 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       vim.cmd.normal { action, bang = bang }
     end)
 
-    local curr_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
+    local current_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
     local curr_buf_lines = vim.api.nvim_buf_line_count(temp_bufnr)
 
     local buf_line_delta = curr_buf_lines - prev_buf_lines
-    local cursor_delta = curr_cursor_row - previous_cursor_row
+    local cursor_delta = current_cursor_row - previous_cursor_row
 
     if initial_loop then
       if cursor_delta == 0 then
@@ -72,9 +73,8 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       initial_loop = false
     end
 
-    if cursor_delta < normal_cursor_delta then
-      break -- End of document reached
-    end
+    -- End of document reached. This behavior may be TOO simple; it might be worth looking into expanding on this.
+    if cursor_delta < normal_cursor_delta then break end
 
     if buf_line_delta > cursor_delta then
       errorMsg =
@@ -82,8 +82,10 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       break
     end
 
+    -- Offset the end of the domain based on whether it grew or shrank
     num_lines = num_lines + buf_line_delta
-    if curr_cursor_row > num_lines then break end
+
+    if current_cursor_row > num_lines then break end
   end
 
   vim.api.nvim_win_close(temp_win, true)
@@ -91,7 +93,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
   if ok then
     -- Replace lines in original buffer
     local new_lines = vim.api.nvim_buf_get_lines(temp_bufnr, 0, -1, false)
-    vim.api.nvim_buf_set_lines(orig_bufnr, domain_start_line - 1, domain_end_line, false, new_lines)
+    vim.api.nvim_buf_set_lines(original_bufnr, domain_start_line - 1, domain_end_line, false, new_lines)
   else
     vim.api.nvim_echo(
       { { errorMsg } }, true, { err = true })
