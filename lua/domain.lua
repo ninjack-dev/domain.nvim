@@ -21,7 +21,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
   end
 
   -- Copy the target lines to scratch buffer in temporary window; this is the only way (as far as I can tell) to apply `normal` actions atomically
-  -- In theory, the window should never actually appear. If it does, then it may be worth looking at other options for manipulating the buffer, 
+  -- In theory, the window should never actually appear. If it does, then it may be worth looking at other options for manipulating the buffer,
   -- or at the very least ensuring atomicity.
   local orig_bufnr = vim.api.nvim_get_current_buf()
   local temp_bufnr = vim.api.nvim_create_buf(false, true)
@@ -31,7 +31,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
 
   -- Attempt action in scratch buffer
   local temp_win = vim.api.nvim_open_win(temp_bufnr, true, {
-    relative = "editor", row = 0, col = 0, width = 1, height = 1, style = "minimal"
+    relative = "editor", row = 0, col = 0, width = 1, height = 1, style = "minimal", hide = true
   })
   vim.api.nvim_win_set_cursor(temp_win, { 1, orig_cursor_column })
   local num_lines = vim.api.nvim_buf_line_count(temp_bufnr)
