@@ -17,8 +17,8 @@ There are some minor considerations/protections to put in place to ensure that t
 - Expanding on the above consideration: if at any point the macro adds more lines than it traverses (e.g. `PPj`, where register `@0` contains a string with a newline), a protective measure will trigger, and it will exit with an error.
 
 Some caveats:
-- Due to the nature of the checks, macros which are able to vary the cursor delta between invocations are currently unsupported.
 - If a macro performs no edits, e.g. it only moves the cursor, then the undo tree will still show a change. This is due to how the change would normally be applied; it copies the line range into a temporary buffer/window to apply the command with `normal`, then copies the edited block back, constituting a "change" in the eyes of the undo tree. If it did not, then at any point where the command fails, the changes would still be applied, which is likely undesirable.
+    - This could potentially be resolved by doing the edits in-place and manipulating the undo tree; this would require a major rework in the current logic.
 
 ## Example Usecase
 ### Building a String with Every Other Line
@@ -59,4 +59,6 @@ Manually counting the number of secrets, or visually selecting/reading the numbe
 This use-case was the primary inspiration for this plugin.
 ## To-Do List for Release
 - [ ] Add support for "backwards" macros (macros which start at the bottom of the intended domain)
-- [ ] Allow variable macro movements by expanding the beginning and end of the buffer with blank lines to preserve the original domain bounds logic
+- [x] Allow variable macro movements by expanding the beginning and end of the buffer with blank lines to preserve the original domain bounds logic
+- Add options:
+    - [ ] Always begin from the first row of the domain (default), or to begin from the last row if the visual selection ended on that.
