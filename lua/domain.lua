@@ -14,7 +14,7 @@ end
 -- @param bang              (boolean) Whether to apply the bang to the `norm` command
 function M.domain(domain_start_line, domain_end_line, action, bang)
   local line_range = domain_end_line - domain_start_line
-  if line_range < 2 then
+  if line_range < 1 then
     vim.api.nvim_echo(
       { { "Line domain must be at least two lines!" } }, true, { err = true })
     return
@@ -85,13 +85,13 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       initial_loop = false
     end
 
+    num_lines = num_lines + buffer_line_count_delta -- Offset the end of the domain based on whether it grew or shrank
 
     if current_cursor_row > num_lines or        -- Moved outside bottom of domain
         current_cursor_row == 1 or              -- Moved outside top of domain
         cursor_delta < normal_cursor_delta then -- End of document reached; only possible in some scenarios
       break
     end
-
 
     if buffer_line_count_delta >= cursor_delta then
       errorMsg =
@@ -100,7 +100,6 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       break
     end
 
-    num_lines = num_lines + buffer_line_count_delta -- Offset the end of the domain based on whether it grew or shrank
   end
 
   vim.api.nvim_win_close(temp_win, true)
