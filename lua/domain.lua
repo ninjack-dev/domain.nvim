@@ -84,7 +84,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       break
     end
 
-    if buffer_line_delta > cursor_delta then
+    if buffer_line_delta >= cursor_delta then
       errorMsg =
       "Buffer size is increasing as fast or faster than the cursor is moving! This will cause the buffer to infinitely expand."
       ok = false
