@@ -20,30 +20,6 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
     return
   end
 
-  -- Copy the target lines to scratch buffer in temporary window; this is the only way (as far as I can tell) to apply `normal` actions atomically
-  -- In theory, the window should never actually appear. If it does, then it may be worth looking at other options for manipulating the buffer,
-  -- or at the very least ensuring atomicity (likely manipulating the undo tree)
-  local original_bufnr = vim.api.nvim_get_current_buf()
-  local original_lines = vim.api.nvim_buf_get_lines(original_bufnr, domain_start_line - 1, domain_end_line, false)
-  local original_cursor_column = vim.api.nvim_win_get_cursor(0)[2]
-  local original_cursor_row = vim.api.nvim_win_get_cursor(0)[1]
-
-  local temp_bufnr = vim.api.nvim_create_buf(false, true)
-  local temp_win = vim.api.nvim_open_win(temp_bufnr, true, {
-    relative = "win", row = 0, col = 0, width = 1, height = 1, style = "minimal", hide = true
-  })
-
-  vim.api.nvim_buf_set_lines(temp_bufnr, 0, 0, false, { "" })   -- Add blank line to beginning of buffer
-  vim.api.nvim_buf_set_lines(temp_bufnr, 1, 1, false, original_lines)
-  vim.api.nvim_buf_set_lines(temp_bufnr, -1, -1, false, { "" }) -- Add blank line to end of buffer
-
-  local num_lines = vim.api.nvim_buf_line_count(temp_bufnr) - 2 -- Subtract two for the lines we added
-
-  vim.api.nvim_win_set_cursor(temp_win, {
-    2,                     -- Rows are 1-indexed, and we want to start one below the beginning blank line
-    original_cursor_column -- Respect user's starting column (e.g. when selecting with <C-v>)
-  })
-
   local ok = true
   local errorMsg, warnMsg
 
@@ -51,18 +27,17 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
   local normal_cursor_delta
 
   while true do
-    local previous_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
-    local prev_buf_line_count = vim.api.nvim_buf_line_count(temp_bufnr)
-
-    vim.api.nvim_buf_call(temp_bufnr, function()
-      -- Suppress --no lines in buffer-- notification. It may be worth looking into exiting if it ever gets to that point. 
+    local previous_cursor_row = vim.api.nvim_win_get_cursor(0)[1]
+    local prev_buf_line_count = vim.api.nvim_buf_line_count(0)
+    vim.api.nvim_buf_call(0, function()
+      -- Suppress --no lines in buffer-- notification. It may be worth looking into exiting if it ever gets to that point.
       -- Here's the original for convenience
       -- vim.cmd.normal { action, bang = bang, silent = true }
       vim.cmd("silent! normal" .. (bang and "!" or "") .. " " .. action)
     end)
-
-    local current_cursor_row = vim.api.nvim_win_get_cursor(temp_win)[1]
-    local curr_buf_line_count = vim.api.nvim_buf_line_count(temp_bufnr)
+    -- vim.cmd.undojoin()
+    local current_cursor_row = vim.api.nvim_win_get_cursor(0)[1]
+    local curr_buf_line_count = vim.api.nvim_buf_line_count(0)
 
     local buffer_line_count_delta = curr_buf_line_count - prev_buf_line_count
     local cursor_delta = current_cursor_row - previous_cursor_row
@@ -83,13 +58,16 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       -- end
 
       initial_loop = false
+    else
+      vim.cmd.undojoin()
     end
 
-    num_lines = num_lines + buffer_line_count_delta -- Offset the end of the domain based on whether it grew or shrank
+    domain_end_line = domain_end_line +
+        buffer_line_count_delta                   -- Offset the end of the domain based on whether it grew or shrank
 
-    if current_cursor_row > num_lines or        -- Moved outside bottom of domain
-        current_cursor_row == 1 or              -- Moved outside top of domain
-        cursor_delta < normal_cursor_delta then -- End of document reached; only possible in some scenarios
+    if current_cursor_row > domain_end_line or    -- Moved outside bottom of domain
+        current_cursor_row < domain_start_line or -- Moved outside top of domain
+        cursor_delta < normal_cursor_delta then   -- End of document reached; only possible in some scenarios
       break
     end
 
@@ -99,25 +77,16 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       ok = false
       break
     end
-
   end
-
-  vim.api.nvim_win_close(temp_win, true)
-
-  if ok then
-    -- Replace lines in original buffer
-    local new_lines = vim.api.nvim_buf_get_lines(temp_bufnr, 1, -3, false)
-    vim.api.nvim_buf_set_lines(original_bufnr, domain_start_line - 1, domain_end_line, false, new_lines)
-  else
+  if not ok then
     vim.api.nvim_echo(
       { { errorMsg } }, true, { err = true })
+    vim.cmd.undo()
   end
   if warnMsg ~= nil then
     vim.api.nvim_echo(
       { { warnMsg, "warningMsg" } }, true, {})
   end
-
-  vim.api.nvim_buf_delete(temp_bufnr, { force = true })
 end
 
 return M
