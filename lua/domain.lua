@@ -1,27 +1,31 @@
 local M = {}
 
+--- @class Options
+
+---@param opts Options
 function M.setup(opts) -- Opts is unused for now
   vim.api.nvim_create_user_command('Domain', function(params)
-    M.domain(params.line1, params.line2, params.fargs[1], params.bang)
+    M.domain(params.line1, params.line2, params.fargs[1], params.bang, opts)
   end, { range = true, nargs = 1 })
 end
 
 -- Perform a normal-mode action while within a line domain.
 --
--- @param domain_start_line (number) Start line (1-based, inclusive)
--- @param domain_end_line   (number) End line (1-based, inclusive)
--- @param action            (string) Normal-mode command(s)
--- @param bang              (boolean) Whether to apply the bang to the `norm` command
-function M.domain(domain_start_line, domain_end_line, action, bang)
+---@param domain_start_line number Start line (1-based, inclusive)
+---@param domain_end_line   number End line (1-based, inclusive)
+---@param action            string Normal-mode command(s)
+---@param bang              boolean Whether to apply the bang to the `norm` command
+---@param opts              Options Unused for now
+function M.domain(domain_start_line, domain_end_line, action, bang, opts)
   local line_range = domain_end_line - domain_start_line
   if line_range < 1 then
     vim.api.nvim_echo(
-      { { "Line domain must be at least two lines!" } }, true, { err = true })
+      { { "Line domain must be at least two lines" } }, true, { err = true })
     return
   end
 
   local ok = true
-  local errorMsg, warnMsg
+  local errorMsg, warnMsg -- warnMsg is currently unused
 
   local initial_loop = true
   local normal_cursor_delta
@@ -35,7 +39,7 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       -- vim.cmd.normal { action, bang = bang, silent = true }
       vim.cmd("silent! normal" .. (bang and "!" or "") .. " " .. action)
     end)
-    -- vim.cmd.undojoin()
+
     local current_cursor_row = vim.api.nvim_win_get_cursor(0)[1]
     local curr_buf_line_count = vim.api.nvim_buf_line_count(0)
 
@@ -43,6 +47,8 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
     local cursor_delta = current_cursor_row - previous_cursor_row
 
     if initial_loop then
+      initial_loop = false
+
       if cursor_delta == 0 and buffer_line_count_delta == 0 then
         errorMsg =
         "Cursor has not moved during initial loop! This will cause the operation to run on this line infinitely."
@@ -51,15 +57,8 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
       else
         normal_cursor_delta = cursor_delta
       end
-
-      -- WIP: I'm unsure of how often it would actually be necessary to know this.
-      -- if line_range % normal_cursor_delta ~= 0 then
-      --   warnMsg = "The cursor movement delta (".. tostring(normal_cursor_delta) .. ") does not divide the domain size (" .. tostring(line_range) ..") cleanly; the last iteration may behave differently!"
-      -- end
-
-      initial_loop = false
     else
-      vim.cmd.undojoin()
+      vim.cmd.undojoin() -- It would appear that this may be unnecessary. It's been difficult to test. At best, it doesn't seem to cause any issues, so I'm leaving it in for now.
     end
 
     domain_end_line = domain_end_line +
@@ -73,16 +72,18 @@ function M.domain(domain_start_line, domain_end_line, action, bang)
 
     if buffer_line_count_delta >= cursor_delta then
       errorMsg =
-      "Buffer size is increasing as fast or faster than the cursor is moving! This will cause the buffer to infinitely expand."
+      "Buffer size is increasing as fast as or faster than the cursor is moving! This will cause the buffer to infinitely expand."
       ok = false
       break
     end
   end
+
   if not ok then
     vim.api.nvim_echo(
       { { errorMsg } }, true, { err = true })
     vim.cmd.undo()
   end
+
   if warnMsg ~= nil then
     vim.api.nvim_echo(
       { { warnMsg, "warningMsg" } }, true, {})
