@@ -9,8 +9,8 @@ As a simple example, to delete every other line within a block, simply run
 ```
 
 There are three things to consider when operating on a domain:
-- **The Cursor Delta Defines the End of the Loop** -- The cursor delta--i.e. how many lines the cursor moves during a loop--is tracked on the first loop; if the cursor travels fewer lines than it did on the first loop, it exits, because it has likely reached the end of the buffer.
-- **The Domain Cannot Be Empty** -- If the line delta is not at least 1, then it will exit with an error to protect against infinite loops. If it **is** 1, you should consider using `:norm[al]`.
+- **The Cursor Delta (Sometimes) Defines the End of the Loop** -- The cursor delta--i.e. how many lines the cursor moves during a loop--is tracked on the first loop; if the cursor travels fewer lines than it did on the first loop, it exits, because it has likely reached the end of the buffer.
+- **The Domain Cannot Be Empty** -- If the domain does not consist of at least one line, then it will exit with an error. If it **is** one line, you should just consider running your macro as-is.
 - **You Can Resize the Domain** - Operations which remove lines from the buffer cause the domain to shrink; without this behavior, lines which were outside of the original line range would end up getting removed, which is generally unintended. This also applies to line additions; adding lines would otherwise cause the end of the selected domain to shift outside. This behavior is known as "domain expansion", and is trivial to work with. However, if at any point the macro adds more lines than it traverses (e.g. `PPj`, where register `@0` contains a string with a newline), a protective measure will trigger, and it will exit with an error.
 
 ## Design
