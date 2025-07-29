@@ -57,8 +57,6 @@ function M.domain(domain_start_line, domain_end_line, action, bang, opts)
       else
         normal_cursor_delta = cursor_delta
       end
-    else
-      vim.cmd.undojoin() -- It would appear that this may be unnecessary. It's been difficult to test. At best, it doesn't seem to cause any issues, so I'm leaving it in for now.
     end
 
     domain_end_line = domain_end_line +
